@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain } = require('electron');
+const { app, BrowserWindow, screen, Menu, ipcMain } = require('electron');
 const path = require('path');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -54,6 +54,10 @@ const createDisplayWindow = () => {
   displayWindow.loadFile(path.join(__dirname, 'display.html'));
 }
 
+const menuTemplate = require('./menuTemplate.js');
+const menu = Menu.buildFromTemplate(menuTemplate);
+
+Menu.setApplicationMenu(menu);
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -87,4 +91,16 @@ ipcMain.on('verse-change', (event, verse) => {
   }
   displayWindow.show();
   displayWindow.webContents.send('verse-change', verse);
-})
+});
+
+app.on('open-load-database', () => {
+  console.log('open-load-database');
+});
+
+app.on('open-font-settings', () => {
+  console.log('open-font-settings');
+});
+
+app.on('open-change-background-image', () => {
+  console.log('open-change-background-image');
+});
