@@ -1,5 +1,6 @@
-const { app, BrowserWindow, screen, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, screen, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
+const { loadBibleDatabase } = require('./db.js');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -11,6 +12,11 @@ let externalDisplay;
 const findExternalDisplay = () => {
   const displays = screen.getAllDisplays();
   console.log(displays);
+
+  if (displays.length === 1) {
+    externalDisplay = displays[0];
+    return;
+  }
 
   externalDisplay = displays.find((display) => {
     return display.bounds.x !== 0 || display.bounds.y !== 0;
@@ -94,7 +100,23 @@ ipcMain.on('verse-change', (event, verse) => {
 });
 
 app.on('open-load-database', () => {
-  console.log('open-load-database');
+  const bibleFilePath = dialog.showOpenDialogSync(
+    mainWindow,
+    {
+      title: 'Load Database',
+      properties: ['openFile'],
+      filters: [
+        { name: 'CSV File', extensions: ['csv'] }
+      ]
+    }
+  );
+
+  if (bibleFilePath) {
+    console.log(bibleFilePath);
+    loadBibleDatabase(bibleFilePath[0]);
+  } else {
+    console.log('No file selected');
+  }
 });
 
 app.on('open-font-settings', () => {
