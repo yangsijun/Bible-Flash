@@ -21,6 +21,9 @@ const template = [
         label: 'Change Background Image',
         click: () => app.emit('open-change-background-image'),
       },
+      {
+        role: 'toggleDevTools',
+      }
     ],
   }
 ];

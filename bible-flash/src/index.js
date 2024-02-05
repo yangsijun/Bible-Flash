@@ -1,6 +1,6 @@
 const { app, BrowserWindow, screen, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
-const { loadBibleDatabase } = require('./db.js');
+const { loadBibleDatabase, queryVerse } = require('./db.js');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -96,7 +96,9 @@ ipcMain.on('verse-change', (event, verse) => {
     createDisplayWindow();
   }
   displayWindow.show();
-  displayWindow.webContents.send('verse-change', verse);
+  queryVerse(1, 1, 1)
+    .then(sentence => displayWindow.webContents.send('sentence-change', sentence))
+    .catch(err => console.log(err));
 });
 
 app.on('open-load-database', () => {

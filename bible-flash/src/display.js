@@ -1,5 +1,5 @@
 console.log('Running display.js');
 
-window.api.on('verse-change', (event, verse) => {
-  document.getElementById('verse-display').innerText = verse;
+window.api.on('sentence-change', (event, sentence) => {
+  document.getElementById('sentence-display').innerText = sentence;
 });

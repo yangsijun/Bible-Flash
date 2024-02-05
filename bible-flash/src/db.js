@@ -66,7 +66,39 @@ const loadBibleDatabase = (csvPath) => {
     });
 }
 
+const queryVerse = function (book, chapter, verse) {
+  return new Promise((resolve, reject) => {
+    const bibleDbPath = path.join(app.getPath('userData'), 'bible.db');
+    const bibleDB = new sqlite3.Database(bibleDbPath, (err) => {
+      if (err) {
+        console.error(err.message);
+      }
+    });
+
+    bibleDB.serialize(() => {
+      bibleDB.each(
+        `SELECT sentence FROM bible WHERE book = ? AND chapter = ? AND verse = ?`,
+        [book, chapter, verse],
+        (err, row) => {
+          if (err) {
+            reject(err);
+          }
+          console.log(row.sentence);
+          resolve(row.sentence);
+        }
+      );
+    });
+
+    bibleDB.close((err) => {
+      if (err) {
+        console.error(err.message);
+      }
+    });
+  });
+};
+
 module.exports = {
   createSettingDatabase,
-  loadBibleDatabase
+  loadBibleDatabase,
+  queryVerse
 };
