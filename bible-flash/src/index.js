@@ -90,6 +90,12 @@ app.on('activate', () => {
   }
 });
 
+ipcMain.on('close-display-window', (event) => {
+  if (!displayWindow.isDestroyed()) {
+    displayWindow.hide();
+  }
+});
+
 ipcMain.on('verse-change', (event, verse) => {
   console.log(verse);
   if (displayWindow.isDestroyed()) {
