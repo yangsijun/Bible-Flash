@@ -1,3 +1,4 @@
+const electron = require('electron');
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
@@ -8,6 +9,7 @@ if (require('electron-squirrel-startup')) {
 
 let mainWindow;
 let displayWindow;
+let externalDisplay;
 
 const createWindow = () => {
   // Create the browser window.
@@ -27,22 +29,36 @@ const createWindow = () => {
   // mainWindow.webContents.openDevTools();
 
   displayWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    x: externalDisplay.bounds.x,
+    y: externalDisplay.bounds.y,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
     },
-    // show: false,
+    show: false,
+    frame: false,
+    fullscreen: true,
   });
 
   displayWindow.loadFile(path.join(__dirname, 'display.html'));
 };
 
+const findExternalDisplay = () => {
+  const displays = electron.screen.getAllDisplays();
+  console.log(displays);
+
+  externalDisplay = displays.find((display) => {
+    return display.bounds.x !== 0 || display.bounds.y !== 0;
+  });
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', () => {  
+  findExternalDisplay();
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -66,5 +82,6 @@ app.on('activate', () => {
 
 ipcMain.on('verse-change', (event, verse) => {
   console.log(verse);
+  displayWindow.show();
   displayWindow.webContents.send('verse-change', verse);
 })
