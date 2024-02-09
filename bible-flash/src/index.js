@@ -1,6 +1,15 @@
 const { app, BrowserWindow, screen, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
-const { loadBibleDatabase, queryVerse } = require('./db.js');
+const {
+  loadBibleDatabase,
+  getBookNumberFromShortLabel,
+  getBookNumberFromLongLabel,
+  getBookShortLabel,
+  getBookLongLabel,
+  getNumberOfChapters,
+  getNumberOfVerses,
+  queryVerse
+} = require('./db.js');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -42,6 +51,8 @@ const createMainWindow = () => {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'control.html'));
+  // open devtools
+  mainWindow.webContents.openDevTools();
 }
 
 const createDisplayWindow = () => {
@@ -58,6 +69,8 @@ const createDisplayWindow = () => {
   });
 
   displayWindow.loadFile(path.join(__dirname, 'display.html'));
+  // open devtools
+  displayWindow.webContents.openDevTools();
 }
 
 const menuTemplate = require('./menuTemplate.js');
@@ -96,15 +109,24 @@ ipcMain.on('close-display-window', (event) => {
   }
 });
 
-ipcMain.on('verse-change', (event, verse) => {
-  console.log(verse);
+ipcMain.on('verse-text-inputed', (event, textInput) => {
+  console.log(textInput);
   if (displayWindow.isDestroyed()) {
     createDisplayWindow();
   }
   displayWindow.show();
-  queryVerse(1, 1, 1)
-    .then(sentence => displayWindow.webContents.send('sentence-change', sentence))
-    .catch(err => console.log(err));
+
+  // 마 1:1 -> ['마', '1', '1']
+  const [book, chapter, verse] = textInput.split(' ');
+  // 마 or 마태복음 -> 40
+
+  getBookNumberFromShortLabel(book)
+    .then(idx => {
+      const bookNumber = idx; console.log(bookNumber);
+      queryVerse(bookNumber, chapter, verse)
+        .then(sentence => displayWindow.webContents.send('sentence-change', sentence))
+        .catch(err => console.log(err))
+    });
 });
 
 app.on('open-load-database', () => {
