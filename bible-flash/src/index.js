@@ -121,11 +121,28 @@ ipcMain.on('verse-text-inputed', (event, textInput) => {
   // 마 or 마태복음 -> 40
 
   getBookNumberFromShortLabel(book)
-    .then(idx => {
-      const bookNumber = idx; console.log(bookNumber);
-      queryVerse(bookNumber, chapter, verse)
-        .then(sentence => displayWindow.webContents.send('sentence-change', sentence))
-        .catch(err => console.log(err))
+    .then(bookNumber => {
+      if (bookNumber !== -1) {
+        console.log(bookNumber);
+        queryVerse(bookNumber, chapter, verse)
+          .then(sentence => displayWindow.webContents.send('sentence-change', sentence))
+          .catch(err => console.log(err));
+      } else {
+        getBookNumberFromLongLabel(book)
+          .then(bookNumber => {
+            if (bookNumber === -1) {
+              return;
+            }
+            console.log(bookNumber);
+            queryVerse(bookNumber, chapter, verse)
+              .then(sentence => displayWindow.webContents.send('sentence-change', sentence))
+              .catch(err => console.log(err));
+          })
+          .catch(err => console.log(err));
+      }
+    })
+    .catch(err => {
+      console.log(err)
     });
 });
 

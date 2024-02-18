@@ -154,23 +154,27 @@ const getBookNumberFromShortLabel = (shortLabel) => {
     });
 
     bibleDB.serialize(() => {
-      bibleDB.each(
+      bibleDB.all(
         `SELECT idx FROM books WHERE short_label = ?`,
         [shortLabel],
-        (err, row) => {
+        (err, rows) => {
           if (err) {
             reject(err);
+          } else if (rows.length === 0) {
+            console.log('no book found');
+            resolve(-1);
+          } else {
+            console.log(rows[0]);
+            resolve(rows[0].idx);
           }
-          console.log(row);
-          resolve(row.idx);
+
+          bibleDB.close((err) => {
+            if (err) {
+              console.error(err.message);
+            }
+          });
         }
       );
-    });
-
-    bibleDB.close((err) => {
-      if (err) {
-        console.error(err.message);
-      }
     });
   });
 }
@@ -185,22 +189,26 @@ const getBookNumberFromLongLabel = (longLabel) => {
     });
 
     bibleDB.serialize(() => {
-      bibleDB.each(
+      bibleDB.all(
         `SELECT idx FROM books WHERE long_label = ?`,
         [longLabel],
-        (err, row) => {
+        (err, rows) => {
           if (err) {
             reject(err);
+          } else if (rows.length === 0) {
+            console.log('no book found');
+            resolve(-1);
+          } else {
+            resolve(rows[0].idx);
           }
-          resolve(row.idx);
+
+          bibleDB.close((err) => {
+            if (err) {
+              console.error(err.message);
+            }
+          });
         }
       );
-    });
-
-    bibleDB.close((err) => {
-      if (err) {
-        console.error(err.message);
-      }
     });
   });
 }
