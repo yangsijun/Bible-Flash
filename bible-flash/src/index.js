@@ -117,7 +117,7 @@ ipcMain.on('verse-text-inputed', (event, textInput) => {
   displayWindow.show();
 
   // 마 1:1 -> ['마', '1', '1']
-  const [book, chapter, verse] = textInput.split(' ');
+  const [book, chapter, verse] = textInput.split((/ |\:/));
   // 마 or 마태복음 -> 40
 
   getBookNumberFromShortLabel(book)
