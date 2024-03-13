@@ -2,15 +2,32 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Hello World!</title>
+    <title>Bible Flash</title>
     <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
+    <h1>Bible Flash</h1>
 
-    <input id="verse-text-input" type="text" placeholder="성경 구절을 입력하세요." />
-    <button id="submit-button">표시</button>
+    <form>
+      <div>
+        <input id="verse-text-input" type="text" placeholder="성경 구절을 입력하세요."/>
+        <button id="submit-button" type="button">표시</button>
+      </div>
+    </form>
+    
+    <form>
+      <div>
+        <select name="book-select" id="book-select" class="select"></select>
+        <label for="book-select" id="book-select-label" class="select-label">성경</label>
+        <select name="chapter-select" id="chapter-select" class="select"></select>
+        <label for="chapter-select" class="select-label">장</label>
+        <select name="verse-select" id="verse-select" class="select"></select>
+        <label for="verse-select" class="select-label">절</label>
+      </div>
+      <div>
+      </div>
+    </form>
+
     <script src="control.js"></script>
   </body>
 </html>

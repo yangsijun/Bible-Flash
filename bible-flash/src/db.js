@@ -128,7 +128,6 @@ const loadBibleDatabase = (csvPath) => {
   fs.createReadStream(csvPath)
     .pipe(csv())
     .on('data', (row) => {
-      // console.log(row);
       stmt.run([row.book, row.chapter, row.verse, row.sentence]);
     })
     .on('end', () => {
@@ -334,7 +333,6 @@ const getNumberOfVerses = (book, chapter) => {
 }
 
 const queryVerse = (book, chapter, verse) => {
-  console.log(book, chapter, verse);
   return new Promise((resolve, reject) => {
     const bibleDbPath = path.join(app.getPath('userData'), 'bible.db');
     const bibleDB = new sqlite3.Database(bibleDbPath, (err) => {
@@ -364,6 +362,41 @@ const queryVerse = (book, chapter, verse) => {
   });
 };
 
+const getBookList = () => new Promise((resolve, reject) => {
+  const bibleDbPath = path.join(app.getPath('userData'), 'bible.db');
+  const bibleDB = new sqlite3.Database(bibleDbPath, (err) => {
+    if (err) {
+      reject(err);
+    }
+  });
+
+  bibleDB.serialize(() => {
+    bibleDB.all(
+      `SELECT idx, long_label, short_label FROM books`,
+      (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows.map(row => (
+            {
+              idx: row.idx,
+              long_label: row.long_label,
+              short_label: row.short_label,
+            }
+          )));
+        }
+
+        bibleDB.close((err) => {
+          if (err) {
+            console.error(err.message);
+          }
+        });
+      }
+    );
+  });
+});
+
+
 module.exports = {
   createSettingDatabase,
   loadBibleDatabase,
@@ -373,5 +406,6 @@ module.exports = {
   getBookLongLabel,
   getNumberOfChapters,
   getNumberOfVerses,
-  queryVerse
+  queryVerse,
+  getBookList,
 };

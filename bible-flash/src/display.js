@@ -1,7 +1,6 @@
-console.log('Running display.js');
-
 window.api.on('sentence-change', (event, sentence) => {
-  document.getElementById('sentence-display').innerText = sentence;
+  document.getElementById('sentence-display').innerText = sentence.text;
+  document.getElementById('verse-display').innerText = sentence.bookChapterVerse;
 });
 
 window.addEventListener('keydown', (event) => {

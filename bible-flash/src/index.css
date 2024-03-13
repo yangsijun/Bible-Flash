@@ -5,3 +5,45 @@ body {
   max-width: 38rem;
   padding: 2rem;
 }
+
+#verse-text-input {
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+#input-container {
+  width: 100%;
+}
+
+#submit-button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  cursor: pointer;
+}
+
+td {
+  width: max-content;
+}
+
+.select {
+  width: 4rem;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+#book-select {
+  width: 8rem;
+}
+
+#book-select-label {
+  display: none;
+}

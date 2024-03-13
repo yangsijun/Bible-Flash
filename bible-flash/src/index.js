@@ -8,7 +8,8 @@ const {
   getBookLongLabel,
   getNumberOfChapters,
   getNumberOfVerses,
-  queryVerse
+  queryVerse,
+  getBookList,
 } = require('./db.js');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -20,7 +21,6 @@ let externalDisplay;
 
 const findExternalDisplay = () => {
   const displays = screen.getAllDisplays();
-  console.log(displays);
 
   if (displays.length === 1) {
     externalDisplay = displays[0];
@@ -42,8 +42,8 @@ const createWindow = () => {
 
 const createMainWindow = () => {
   mainWindow = new BrowserWindow({
-    width: 400,
-    height: 300,
+    width: 500,
+    height: 400,
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
@@ -110,7 +110,6 @@ ipcMain.on('close-display-window', (event) => {
 });
 
 ipcMain.on('verse-text-inputed', (event, textInput) => {
-  console.log(textInput);
   if (displayWindow.isDestroyed()) {
     createDisplayWindow();
   }
@@ -123,26 +122,58 @@ ipcMain.on('verse-text-inputed', (event, textInput) => {
   getBookNumberFromShortLabel(book)
     .then(bookNumber => {
       if (bookNumber !== -1) {
-        console.log(bookNumber);
         queryVerse(bookNumber, chapter, verse)
-          .then(sentence => displayWindow.webContents.send('sentence-change', sentence))
+          .then(sentence => displayWindow.webContents.send('sentence-change', {'text': sentence, 'bookChapterVerse': '(' + short_label + ' ' + chapter + ':' + verse + ')'}))
           .catch(err => console.log(err));
       } else {
         getBookNumberFromLongLabel(book)
           .then(bookNumber => {
             if (bookNumber === -1) {
+              displayWindow.webContents.send('sentence-change', {'text': '', 'bookChapterVerse': ''});
               return;
             }
-            console.log(bookNumber);
-            queryVerse(bookNumber, chapter, verse)
-              .then(sentence => displayWindow.webContents.send('sentence-change', sentence))
+            getBookShortLabel(bookNumber)
+              .then(short_label => {
+                queryVerse(bookNumber, chapter, verse)
+                  .then(sentence => displayWindow.webContents.send('sentence-change', {'text': sentence, 'bookChapterVerse': '(' + short_label + ' ' + chapter + ':' + verse + ')'}))
+                  .catch(err => console.log(err));
+              })
               .catch(err => console.log(err));
           })
           .catch(err => console.log(err));
       }
     })
     .catch(err => {
-      console.log(err)
+      console.log(err);
+    });
+});
+
+ipcMain.on('load-book-list', () => {
+  getBookList().then(bookList => {
+    mainWindow.webContents.send('book-list-loaded', bookList);
+  })
+  .catch(err => {
+    console.log(err);
+  });
+});
+
+ipcMain.on('book-selected', (event, bookNumber) => {
+  getNumberOfChapters(bookNumber)
+    .then(numberOfChapters => {
+      mainWindow.webContents.send('number-of-chapters-loaded', numberOfChapters);
+    })
+    .catch(err => {
+      console.log(err);
+    });
+});
+
+ipcMain.on('chapter-selected', (event, bookAndChapter) => {
+  getNumberOfVerses(bookAndChapter.book, bookAndChapter.chapter)
+    .then(numberOfVerses => {
+      mainWindow.webContents.send('number-of-verses-loaded', numberOfVerses);
+    })
+    .catch(err => {
+      console.log(err);
     });
 });
 
