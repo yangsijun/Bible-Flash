@@ -117,11 +117,13 @@ ipcMain.on('verse-text-inputed', (event, textInput) => {
 
   // 마 1:1 -> ['마', '1', '1']
   const [book, chapter, verse] = textInput.split((/ |\:/));
+  console.log(book, chapter, verse);
   // 마 or 마태복음 -> 40
 
   getBookNumberFromShortLabel(book)
     .then(bookNumber => {
       if (bookNumber !== -1) {
+        let short_label = book;
         queryVerse(bookNumber, chapter, verse)
           .then(sentence => displayWindow.webContents.send('sentence-change', {'text': sentence, 'bookChapterVerse': '(' + short_label + ' ' + chapter + ':' + verse + ')'}))
           .catch(err => console.log(err));
@@ -197,10 +199,13 @@ app.on('open-load-database', () => {
   }
 });
 
-app.on('open-font-settings', () => {
-  console.log('open-font-settings');
-});
-
-app.on('open-change-background-image', () => {
-  console.log('open-change-background-image');
+app.on('open-theme-settings', () => {
+  const themeSettings = storage.get('themeSettings')
+    .then((settings) => {
+      mainWindow.webContents.send('apply-theme-settings', settings);
+    })
+    .catch((err) => {
+      console.log(err);
+      mainWindow.webContents.send('apply-theme-settings', JSON.stringify(themePresets.white));
+    });
 });
