@@ -49,6 +49,7 @@ const createMainWindow = () => {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
     },
+    icon: path.join(__dirname, '../assets/icons/png/bible-flash-icon-64.png'),
   });
 
   mainWindow.loadFile(path.join(__dirname, 'control.html'));
@@ -72,6 +73,7 @@ const createDisplayWindow = () => {
     show: false,
     frame: false,
     fullscreen: true,
+    icon: path.join(__dirname, '../assets/icons/png/bible-flash-icon-64.png'),
   });
 
   displayWindow.loadFile(path.join(__dirname, 'display.html'));
