@@ -3,12 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <title>Bible Flash</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="index.css" />
   </head>
   <body>
     <h1>Bible Flash</h1>
 
-    <form>
+    <form onsubmit="return false;">
       <div>
         <input id="verse-text-input" type="text" placeholder="성경 구절을 입력하세요."/>
         <button id="submit-button" type="button">표시</button>
@@ -27,6 +28,11 @@
       <div>
       </div>
     </form>
+
+    <div>
+      <button id="prev-btn" onclick="goToPrevVerse();">이전</button>
+      <button id="next-btn" onclick="goToNextVerse();">다음</button>
+    </div>
 
     <script src="control.js"></script>
   </body>

@@ -1,7 +1,15 @@
 document.getElementById('submit-button').addEventListener('click', () => {
-  const verse = document.getElementById('verse-text-input').value;
-  window.api.send('verse-text-inputed', verse);
+  const verseTextInput = document.getElementById('verse-text-input').value;
+  // 마 1:1 -> ['마', '1', '1']
+  const [book, chapter, verse] = verseTextInput.split((/ |\:/));
+  console.log(book, chapter, verse);
+  
+  window.api.send('verse-text-inputed', [book, chapter, verse]);
 });
+
+function updateBookChapterVerse(book, bookNumber, chapter, verse) {  
+  document.getElementById('verse-text-input').value = `${book} ${chapter}:${verse}`;
+}
 
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
@@ -10,11 +18,44 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    const verse = document.getElementById('verse-text-input').value;
-    window.api.send('verse-text-inputed', verse);
+  if (document.activeElement.id !== 'verse-text-input') {
+    if (event.key === 'ArrowLeft') {
+      console.log('arrow-left');
+      goToPrevVerse();
+    } else if (event.key === 'ArrowRight') {
+      console.log('arrow-right');
+      goToNextVerse();
+    }
   }
 });
+
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    document.getElementById('submit-button').click();
+  }
+});
+
+window.api.on('update-book-chapter-verse', (event, {book, bookNumber, chapter, verse}) => {
+  updateBookChapterVerse(book, bookNumber, chapter, verse);
+});
+
+function goToPrevVerse() {
+  const verseTextInput = document.getElementById('verse-text-input').value;
+  const [book, chapter, verse] = verseTextInput.split((/ |\:/));
+  if (verse > 1) {
+    const newVerse = verse - 1;
+    window.api.send('verse-text-inputed', [book, chapter, newVerse]);
+    document.getElementById('verse-text-input').value = `${book} ${chapter}:${newVerse}`;
+  }
+}
+
+function goToNextVerse() {
+  const verseTextInput = document.getElementById('verse-text-input').value;
+  const [book, chapter, verse] = verseTextInput.split((/ |\:/));
+  const newVerse = Number(verse) + 1;
+  window.api.send('verse-text-inputed', [book, chapter, newVerse]);
+  document.getElementById('verse-text-input').value = `${book} ${chapter}:${newVerse}`;
+}
 
 window.api.send('load-book-list');
 

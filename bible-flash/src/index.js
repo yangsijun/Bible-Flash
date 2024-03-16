@@ -11,6 +11,7 @@ const {
   queryVerse,
   getBookList,
 } = require('./db.js');
+const fs = require('fs');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -51,8 +52,13 @@ const createMainWindow = () => {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'control.html'));
+
+  mainWindow.on('closed', () => {
+    displayWindow.close();
+    app.quit();
+  });
   // open devtools
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 }
 
 const createDisplayWindow = () => {
@@ -70,7 +76,7 @@ const createDisplayWindow = () => {
 
   displayWindow.loadFile(path.join(__dirname, 'display.html'));
   // open devtools
-  displayWindow.webContents.openDevTools();
+  // displayWindow.webContents.openDevTools();
 }
 
 const menuTemplate = require('./menuTemplate.js');
@@ -109,23 +115,24 @@ ipcMain.on('close-display-window', (event) => {
   }
 });
 
-ipcMain.on('verse-text-inputed', (event, textInput) => {
+ipcMain.on('verse-text-inputed', (event, [book, chapter, verse]) => {
   if (displayWindow.isDestroyed()) {
     createDisplayWindow();
   }
   displayWindow.show();
 
-  // 마 1:1 -> ['마', '1', '1']
-  const [book, chapter, verse] = textInput.split((/ |\:/));
   console.log(book, chapter, verse);
-  // 마 or 마태복음 -> 40
 
+  // 마 or 마태복음 -> 40
   getBookNumberFromShortLabel(book)
     .then(bookNumber => {
       if (bookNumber !== -1) {
         let short_label = book;
         queryVerse(bookNumber, chapter, verse)
-          .then(sentence => displayWindow.webContents.send('sentence-change', {'text': sentence, 'bookChapterVerse': '(' + short_label + ' ' + chapter + ':' + verse + ')'}))
+          .then(sentence => {
+            displayWindow.webContents.send('sentence-change', {'text': sentence, 'bookChapterVerse': '(' + short_label + ' ' + chapter + ':' + verse + ')'});
+            mainWindow.webContents.send('update-book-chapter-verse', {'book': book, 'bookNumber': bookNumber, 'chapter': chapter, 'verse': verse});
+          })
           .catch(err => console.log(err));
       } else {
         getBookNumberFromLongLabel(book)
@@ -137,7 +144,10 @@ ipcMain.on('verse-text-inputed', (event, textInput) => {
             getBookShortLabel(bookNumber)
               .then(short_label => {
                 queryVerse(bookNumber, chapter, verse)
-                  .then(sentence => displayWindow.webContents.send('sentence-change', {'text': sentence, 'bookChapterVerse': '(' + short_label + ' ' + chapter + ':' + verse + ')'}))
+                  .then(sentence => {
+                    displayWindow.webContents.send('sentence-change', {'text': sentence, 'bookChapterVerse': '(' + short_label + ' ' + chapter + ':' + verse + ')'});
+                    mainWindow.webContents.send('update-book-chapter-verse', {'book': book, 'bookNumber': bookNumber, 'chapter': chapter, 'verse': verse});
+                  })
                   .catch(err => console.log(err));
               })
               .catch(err => console.log(err));
@@ -148,6 +158,8 @@ ipcMain.on('verse-text-inputed', (event, textInput) => {
     .catch(err => {
       console.log(err);
     });
+
+    mainWindow.focus();
 });
 
 ipcMain.on('load-book-list', () => {
@@ -199,13 +211,36 @@ app.on('open-load-database', () => {
   }
 });
 
-app.on('open-theme-settings', () => {
-  const themeSettings = storage.get('themeSettings')
-    .then((settings) => {
-      mainWindow.webContents.send('apply-theme-settings', settings);
-    })
-    .catch((err) => {
-      console.log(err);
-      mainWindow.webContents.send('apply-theme-settings', JSON.stringify(themePresets.white));
-    });
+app.on('change-background-image', () => {
+  const backgroundImagePath = dialog.showOpenDialogSync(
+    mainWindow,
+    {
+      title: 'Change Background Image',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Image File', extensions: ['jpg', 'png'] }
+      ]
+    }
+  );
+
+  if (backgroundImagePath) {
+    console.log(backgroundImagePath);
+
+    let bgImgPath = backgroundImagePath[0];
+    bgImgPath = backgroundImagePath[0].replaceAll(/\\/g, '/');
+    
+    console.log(bgImgPath);
+
+    displayWindow.webContents.send('change-background-image', bgImgPath);
+  } else {
+    console.log('No file selected');
+  }
+});
+
+app.on('change-font-size', (fontSize) => {
+  displayWindow.webContents.send('change-font-size', fontSize);
+});
+
+app.on('change-opacity-dark', (opacityDark) => {
+  displayWindow.webContents.send('change-opacity-dark', opacityDark);
 });
