@@ -9,10 +9,16 @@
   <body>
     <header class="topbar">
       <h1>Bible Flash</h1>
-      <span id="display-status" class="status" data-state="off">화면 꺼짐</span>
+      <div class="topbar-right">
+        <label class="toggle">
+          <input id="preview-toggle" type="checkbox" checked />
+          미리보기
+        </label>
+        <span id="display-status" class="status" data-state="off">화면 꺼짐</span>
+      </div>
     </header>
 
-    <main class="layout">
+    <main id="layout" class="layout">
       <section class="panel controls">
         <form id="reference-form" autocomplete="off">
           <label for="verse-text-input" class="field-label">구절 검색</label>

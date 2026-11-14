@@ -239,6 +239,33 @@ const syncPreview = async () => {
 previewFrame.addEventListener('load', syncPreview);
 syncPreview();
 
+// Preview on/off, remembered on this computer. While hidden the frame keeps
+// receiving updates but cannot measure itself, so it is re-synced (and the
+// long-verse fit redone) when shown again.
+const previewToggle = document.getElementById('preview-toggle');
+const PREVIEW_KEY = 'preview-enabled';
+
+const setPreviewEnabled = (enabled) => {
+  previewToggle.checked = enabled;
+  document.getElementById('layout').classList.toggle('no-preview', !enabled);
+  if (enabled) syncPreview();
+};
+
+previewToggle.addEventListener('change', () => {
+  setPreviewEnabled(previewToggle.checked);
+  try {
+    localStorage.setItem(PREVIEW_KEY, String(previewToggle.checked));
+  } catch {
+    // Not saved; the choice still applies until the app closes.
+  }
+});
+
+try {
+  if (localStorage.getItem(PREVIEW_KEY) === 'false') setPreviewEnabled(false);
+} catch {
+  // Unreadable storage: keep the default (on).
+}
+
 // Keeps the input and dropdowns in sync with what is on screen.
 // A newer update cancels an older one still waiting on its dropdown reloads,
 // so holding PageDown cannot leave the dropdowns on a stale chapter.

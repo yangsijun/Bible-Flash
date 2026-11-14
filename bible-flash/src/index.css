@@ -100,19 +100,49 @@ kbd {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
   gap: 1rem;
   align-items: start;
 }
 
-@media (max-width: 820px) {
+/* Preview turned off: the controls take the whole width. */
+.layout.no-preview {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.layout.no-preview .preview-panel {
+  display: none;
+}
+
+/* Narrow window: one column, controls first, preview below. */
+@media (max-width: 760px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .preview-panel {
-    order: -1;
+    max-width: 360px;
   }
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.toggle input {
+  margin: 0;
+  accent-color: var(--navy);
 }
 
 .panel {
