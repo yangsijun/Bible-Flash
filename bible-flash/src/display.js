@@ -23,6 +23,10 @@ window.api.on('sentence-change', (event, sentence) => {
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     window.api.send('close-display-window');
+  } else if (['PageDown', 'ArrowRight'].includes(event.key)) {
+    window.api.invoke('navigate', 1);
+  } else if (['PageUp', 'ArrowLeft'].includes(event.key)) {
+    window.api.invoke('navigate', -1);
   }
 });
 

@@ -9,14 +9,17 @@
   <body>
     <h1>Bible Flash</h1>
 
-    <form onsubmit="return false;">
-      <div>
-        <input id="verse-text-input" type="text" placeholder="성경 구절을 입력하세요."/>
-        <button id="submit-button" type="button">표시</button>
+    <form id="reference-form" autocomplete="off">
+      <div class="search">
+        <input id="verse-text-input" type="text" placeholder="예: 요 3:16, 요한복음 3장 16절, ㅇㅎ"
+          role="combobox" aria-controls="suggestions" aria-expanded="false" aria-autocomplete="list" />
+        <ul id="suggestions" role="listbox" hidden></ul>
       </div>
+      <button id="submit-button" type="submit">표시</button>
     </form>
-    
-    <form>
+    <p id="message" role="status"></p>
+
+    <form onsubmit="return false;">
       <div>
         <select name="book-select" id="book-select" class="select"></select>
         <label for="book-select" id="book-select-label" class="select-label">성경</label>
@@ -25,15 +28,14 @@
         <select name="verse-select" id="verse-select" class="select"></select>
         <label for="verse-select" class="select-label">절</label>
       </div>
-      <div>
-      </div>
     </form>
 
     <div>
-      <button id="prev-btn" onclick="goToPrevVerse();">이전</button>
-      <button id="next-btn" onclick="goToNextVerse();">다음</button>
+      <button id="prev-btn" type="button">이전</button>
+      <button id="next-btn" type="button">다음</button>
     </div>
 
+    <script src="bookSearch.js"></script>
     <script src="control.js"></script>
   </body>
 </html>

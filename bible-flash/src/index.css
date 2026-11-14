@@ -47,3 +47,49 @@ td {
 #book-select-label {
   display: none;
 }
+#reference-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.search {
+  position: relative;
+  flex: 1;
+}
+
+.search #verse-text-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#suggestions {
+  position: absolute;
+  top: calc(100% - 0.5rem);
+  left: 0;
+  right: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+#suggestions li {
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+#suggestions li[aria-selected="true"] {
+  background: #e8f0fe;
+}
+
+#message {
+  min-height: 1.2em;
+  margin: 0;
+  color: #c62828;
+  font-size: 0.9rem;
+}

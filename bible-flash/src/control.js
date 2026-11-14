@@ -1,130 +1,186 @@
-document.getElementById('submit-button').addEventListener('click', () => {
-  const verseTextInput = document.getElementById('verse-text-input').value;
-  // 마 1:1 -> ['마', '1', '1']
-  const [book, chapter, verse] = verseTextInput.split((/ |\:/));
-  console.log(book, chapter, verse);
-  
-  window.api.send('verse-text-inputed', [book, chapter, verse]);
+const form = document.getElementById('reference-form');
+const input = document.getElementById('verse-text-input');
+const suggestionList = document.getElementById('suggestions');
+const message = document.getElementById('message');
+const bookSelect = document.getElementById('book-select');
+const chapterSelect = document.getElementById('chapter-select');
+const verseSelect = document.getElementById('verse-select');
+
+let books = [];
+let suggestions = [];
+let activeIndex = -1;
+
+const showMessage = (text = '') => {
+  message.textContent = text;
+};
+
+// Calls the main process and shows its error message, if any.
+const run = async (channel, data) => {
+  try {
+    const result = await window.api.invoke(channel, data);
+    showMessage(result?.ok === false ? result.message : '');
+  } catch (err) {
+    showMessage(err.message);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Book name autocomplete
+// ---------------------------------------------------------------------------
+
+const renderSuggestions = () => {
+  suggestionList.replaceChildren(...suggestions.map((book, i) => {
+    const item = document.createElement('li');
+    item.role = 'option';
+    item.textContent = `${book.long_label} (${book.short_label})`;
+    item.setAttribute('aria-selected', String(i === activeIndex));
+    // mousedown (not click) so the input keeps focus.
+    item.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      acceptSuggestion(i);
+    });
+    return item;
+  }));
+  suggestionList.hidden = suggestions.length === 0;
+  input.setAttribute('aria-expanded', String(suggestions.length > 0));
+};
+
+const closeSuggestions = () => {
+  suggestions = [];
+  activeIndex = -1;
+  renderSuggestions();
+};
+
+const acceptSuggestion = (i) => {
+  input.value = `${suggestions[i].long_label} `;
+  closeSuggestions();
+  input.focus();
+};
+
+input.addEventListener('input', () => {
+  // Only the book part is completed; stop once a chapter number is typed.
+  const query = input.value.trim();
+  suggestions = /\d/.test(query) ? [] : searchBooks(books, query);
+  activeIndex = suggestions.length ? 0 : -1;
+  renderSuggestions();
 });
 
-function updateBookChapterVerse(book, bookNumber, chapter, verse) {  
-  document.getElementById('verse-text-input').value = `${book} ${chapter}:${verse}`;
-}
+input.addEventListener('keydown', (event) => {
+  // Ignore keys that only confirm a Korean IME composition.
+  if (event.isComposing || event.keyCode === 229 || suggestions.length === 0) return;
+
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    const step = event.key === 'ArrowDown' ? 1 : -1;
+    activeIndex = (activeIndex + step + suggestions.length) % suggestions.length;
+    renderSuggestions();
+  } else if (event.key === 'Enter' || event.key === 'Tab') {
+    acceptSuggestion(activeIndex);
+  } else if (event.key === 'Escape') {
+    // Close the list without also hiding the display window.
+    closeSuggestions();
+    event.stopPropagation();
+  } else {
+    return;
+  }
+  event.preventDefault();
+});
+
+input.addEventListener('blur', closeSuggestions);
+
+form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  closeSuggestions();
+  run('show-reference', input.value);
+});
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+
+document.getElementById('prev-btn').addEventListener('click', () => run('navigate', -1));
+document.getElementById('next-btn').addEventListener('click', () => run('navigate', 1));
 
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     window.api.send('close-display-window');
+    return;
+  }
+
+  // Presenter clickers send PageUp/PageDown, so those work everywhere.
+  // Arrow keys are left alone while typing or inside a dropdown.
+  const typing = ['INPUT', 'SELECT'].includes(document.activeElement.tagName);
+  if (event.key === 'PageDown' || (!typing && event.key === 'ArrowRight')) {
+    event.preventDefault();
+    run('navigate', 1);
+  } else if (event.key === 'PageUp' || (!typing && event.key === 'ArrowLeft')) {
+    event.preventDefault();
+    run('navigate', -1);
   }
 });
 
-window.addEventListener('keydown', (event) => {
-  if (document.activeElement.id !== 'verse-text-input') {
-    if (event.key === 'ArrowLeft') {
-      console.log('arrow-left');
-      goToPrevVerse();
-    } else if (event.key === 'ArrowRight') {
-      console.log('arrow-right');
-      goToNextVerse();
-    }
+// ---------------------------------------------------------------------------
+// Book / chapter / verse dropdowns
+// ---------------------------------------------------------------------------
+
+const fillSelect = (select, count) => {
+  select.replaceChildren(new Option(' - ', ''));
+  for (let i = 1; i <= count; i++) {
+    select.appendChild(new Option(String(i), String(i)));
   }
-});
+};
 
-window.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    document.getElementById('submit-button').click();
-  }
-});
+const loadChapters = async (book) => {
+  fillSelect(chapterSelect, book ? await window.api.invoke('get-chapter-count', book) : 0);
+  fillSelect(verseSelect, 0);
+};
 
-window.api.on('update-book-chapter-verse', (event, {book, bookNumber, chapter, verse}) => {
-  updateBookChapterVerse(book, bookNumber, chapter, verse);
-});
+const loadVerses = async (book, chapter) => {
+  fillSelect(verseSelect, chapter
+    ? await window.api.invoke('get-verse-count', { book, chapter })
+    : 0);
+};
 
-function goToPrevVerse() {
-  const verseTextInput = document.getElementById('verse-text-input').value;
-  const [book, chapter, verse] = verseTextInput.split((/ |\:/));
-  if (verse > 1) {
-    const newVerse = verse - 1;
-    window.api.send('verse-text-inputed', [book, chapter, newVerse]);
-    document.getElementById('verse-text-input').value = `${book} ${chapter}:${newVerse}`;
-  }
-}
-
-function goToNextVerse() {
-  const verseTextInput = document.getElementById('verse-text-input').value;
-  const [book, chapter, verse] = verseTextInput.split((/ |\:/));
-  const newVerse = Number(verse) + 1;
-  window.api.send('verse-text-inputed', [book, chapter, newVerse]);
-  document.getElementById('verse-text-input').value = `${book} ${chapter}:${newVerse}`;
-}
-
-window.api.send('load-book-list');
-
-window.api.on('book-list-loaded', (event, bookList) => {
-  const bookListElement = document.getElementById('book-select');
-  const option = document.createElement('option');
-  option.value = -1;
-  option.innerText = ' - ';
-  bookListElement.appendChild(option);
-  bookList.forEach(book => {
-    const option = document.createElement('option');
-    option.value = book.idx;
-    option.innerText = book.long_label;
-    bookListElement.appendChild(option);
-  });
-
-  bookListElement.addEventListener('change', () => {
-    const bookNumber = document.getElementById('book-select').value;
-    window.api.send('book-selected', bookNumber);
+bookSelect.addEventListener('change', () => loadChapters(bookSelect.value));
+chapterSelect.addEventListener('change', () => loadVerses(bookSelect.value, chapterSelect.value));
+verseSelect.addEventListener('change', () => {
+  if (!verseSelect.value) return;
+  run('show-verse', {
+    book: bookSelect.value,
+    chapter: chapterSelect.value,
+    verse: verseSelect.value,
   });
 });
 
-window.api.on('number-of-chapters-loaded', (event, numberOfChapters) => {
-  const chapterSelect = document.getElementById('chapter-select');
-  chapterSelect.innerHTML = '';
-  const option = document.createElement('option');
-  option.value = -1;
-  option.innerText = ' - ';
-  chapterSelect.appendChild(option);
-  for (let i = 1; i <= numberOfChapters; i++) {
-    const option = document.createElement('option');
-    option.value = i;
-    option.innerText = i;
-    chapterSelect.appendChild(option);
+// Keeps the input and dropdowns in sync with what is on screen.
+// A newer update cancels an older one still waiting on its dropdown reloads,
+// so holding PageDown cannot leave the dropdowns on a stale chapter.
+let syncId = 0;
+window.api.on('current-verse', async (event, { id, abbr, chapter, verse }) => {
+  const mySync = ++syncId;
+  input.value = `${abbr} ${chapter}:${verse}`;
+  if (bookSelect.value !== String(id)) {
+    bookSelect.value = String(id);
+    await loadChapters(id);
+    if (mySync !== syncId) return;
   }
+  if (chapterSelect.value !== String(chapter)) {
+    chapterSelect.value = String(chapter);
+    await loadVerses(id, chapter);
+    if (mySync !== syncId) return;
+  }
+  verseSelect.value = String(verse);
+});
 
-  chapterSelect.addEventListener('change', () => {
-    const book = document.getElementById('book-select').value;
-    const chapter = document.getElementById('chapter-select').value;
-    window.api.send(
-      'chapter-selected',
-      {
-        'book': book,
-        'chapter': chapter
-      }
+(async () => {
+  try {
+    books = await window.api.invoke('get-book-list');
+    bookSelect.replaceChildren(
+      new Option(' - ', ''),
+      ...books.map((book) => new Option(book.long_label, String(book.idx)))
     );
-  });
-});
-
-window.api.on('number-of-verses-loaded', (event, numberOfVerses) => {
-  const verseSelect = document.getElementById('verse-select');
-  verseSelect.innerHTML = '';
-  const option = document.createElement('option');
-  option.value = -1;
-  option.innerText = ' - ';
-  verseSelect.appendChild(option);
-  for (let i = 1; i <= numberOfVerses; i++) {
-    const option = document.createElement('option');
-    option.value = i;
-    option.innerText = i;
-    verseSelect.appendChild(option);
+    fillSelect(chapterSelect, 0);
+    fillSelect(verseSelect, 0);
+  } catch (err) {
+    showMessage(err.message);
   }
-
-  verseSelect.addEventListener('change', () => {
-    const book = document.getElementById('book-select').value;
-    const chapter = document.getElementById('chapter-select').value;
-    const verse = verseSelect.value;
-    const bookName = document.getElementById('book-select').options[document.getElementById('book-select').selectedIndex].text;
-
-    document.getElementById('verse-text-input').value = `${bookName} ${chapter}:${verse}`;
-  });
-});
+})();

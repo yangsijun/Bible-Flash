@@ -1,6 +1,7 @@
 const { app } = require('electron');
 
-const template = [
+// displays: Electron Display objects; selectedId: id of the output display.
+const buildMenuTemplate = ({ displays, primaryId, selectedId }) => [
   {
     label: 'Setting',
     submenu: [
@@ -9,6 +10,16 @@ const template = [
         click: () => app.emit('open-load-database'),
       },
     ],
+  },
+  {
+    label: 'Display',
+    submenu: displays.map((display, i) => ({
+      label: `디스플레이 ${i + 1}  ${display.label || ''}  ${display.size.width}x${display.size.height}` +
+        (display.id === primaryId ? '  (주 모니터)' : ''),
+      type: 'radio',
+      checked: display.id === selectedId,
+      click: () => app.emit('select-display', display),
+    })),
   },
   {
     label: 'View',
@@ -74,4 +85,4 @@ const template = [
   }
 ];
 
-module.exports = template;
+module.exports = buildMenuTemplate;

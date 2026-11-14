@@ -90,3 +90,7 @@ typings/
 
 # Electron-Forge
 out/
+
+# Bible database: a separate file loaded at runtime, never committed
+*.sqlite
+*.sqlite.tmp
