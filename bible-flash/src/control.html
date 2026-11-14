@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <title>Bible Flash</title>
@@ -7,33 +7,67 @@
     <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <h1>Bible Flash</h1>
+    <header class="topbar">
+      <h1>Bible Flash</h1>
+      <span id="display-status" class="status" data-state="off">화면 꺼짐</span>
+    </header>
 
-    <form id="reference-form" autocomplete="off">
-      <div class="search">
-        <input id="verse-text-input" type="text" placeholder="예: 요 3:16, 요한복음 3장 16절, ㅇㅎ"
-          role="combobox" aria-controls="suggestions" aria-expanded="false" aria-autocomplete="list" />
-        <ul id="suggestions" role="listbox" hidden></ul>
-      </div>
-      <button id="submit-button" type="submit">표시</button>
-    </form>
-    <p id="message" role="status"></p>
+    <main class="layout">
+      <section class="panel controls">
+        <form id="reference-form" autocomplete="off">
+          <label for="verse-text-input" class="field-label">구절 검색</label>
+          <div class="search-row">
+            <div class="search">
+              <input id="verse-text-input" type="text" placeholder="예: 요 3:16, 요한복음 3장 16절, ㅇㅎ"
+                role="combobox" aria-controls="suggestions" aria-expanded="false" aria-autocomplete="list" />
+              <ul id="suggestions" role="listbox" hidden></ul>
+            </div>
+            <button id="submit-button" class="primary" type="submit">표시</button>
+          </div>
+          <p id="message" role="status"></p>
+        </form>
 
-    <form onsubmit="return false;">
-      <div>
-        <select name="book-select" id="book-select" class="select"></select>
-        <label for="book-select" id="book-select-label" class="select-label">성경</label>
-        <select name="chapter-select" id="chapter-select" class="select"></select>
-        <label for="chapter-select" class="select-label">장</label>
-        <select name="verse-select" id="verse-select" class="select"></select>
-        <label for="verse-select" class="select-label">절</label>
-      </div>
-    </form>
+        <div class="field-label">목록에서 선택</div>
+        <div class="pickers">
+          <select id="book-select" aria-label="성경"></select>
+          <label class="picker">
+            <select id="chapter-select" aria-label="장"></select>
+            <span>장</span>
+          </label>
+          <label class="picker">
+            <select id="verse-select" aria-label="절"></select>
+            <span>절</span>
+          </label>
+        </div>
 
-    <div>
-      <button id="prev-btn" type="button">이전</button>
-      <button id="next-btn" type="button">다음</button>
-    </div>
+        <div class="nav">
+          <button id="prev-btn" type="button">
+            <span>◀ 이전 절</span><kbd>PageUp</kbd>
+          </button>
+          <button id="next-btn" type="button">
+            <span>다음 절 ▶</span><kbd>PageDown</kbd>
+          </button>
+        </div>
+
+        <details id="history-section" hidden>
+          <summary>최근 구절 <span id="history-count"></span></summary>
+          <ol id="history"></ol>
+        </details>
+      </section>
+
+      <section class="panel preview-panel" aria-label="송출 화면 미리보기">
+        <div class="preview-head">
+          <span class="field-label">미리보기</span>
+          <span id="preview-size" class="muted"></span>
+        </div>
+        <div id="preview" class="preview">
+          <iframe id="preview-frame" src="display.html?preview" tabindex="-1" title="미리보기"></iframe>
+          <div class="preview-off">화면 꺼짐</div>
+        </div>
+        <p id="current-ref" class="current-ref muted">표시 중인 구절 없음</p>
+        <p class="hint muted"><kbd>Esc</kbd> 화면 숨기기 · 구절을 표시하면 다시 켜집니다</p>
+      </section>
+    </main>
 
     <script src="bookSearch.js"></script>
     <script src="control.js"></script>

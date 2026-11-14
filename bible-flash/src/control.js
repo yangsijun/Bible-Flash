@@ -19,9 +19,45 @@ const run = async (channel, data) => {
   try {
     const result = await window.api.invoke(channel, data);
     showMessage(result?.ok === false ? result.message : '');
+    return result;
   } catch (err) {
     showMessage(err.message);
+    return undefined;
   }
+};
+
+// ---------------------------------------------------------------------------
+// History: verses opened by search, the dropdowns or the history itself.
+// Prev/next stepping is left out so a long reading does not flood the list.
+// Newest first, no duplicates, kept only until the app restarts.
+// ---------------------------------------------------------------------------
+
+const HISTORY_LIMIT = 30;
+const historyList = document.getElementById('history');
+let history = [];
+
+const renderHistory = () => {
+  historyList.replaceChildren(...history.map((entry) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = `${entry.name} ${entry.chapter}:${entry.verse}`;
+    button.addEventListener('click', () => showAndRecord('show-verse', {
+      book: entry.id, chapter: entry.chapter, verse: entry.verse,
+    }));
+    const item = document.createElement('li');
+    item.append(button);
+    return item;
+  }));
+  document.getElementById('history-section').hidden = history.length === 0;
+  document.getElementById('history-count').textContent = `(${history.length})`;
+};
+
+const showAndRecord = async (channel, data) => {
+  const shown = (await run(channel, data))?.shown;
+  if (!shown) return;
+  const same = (e) => e.id === shown.id && e.chapter === shown.chapter && e.verse === shown.verse;
+  history = [shown, ...history.filter((e) => !same(e))].slice(0, HISTORY_LIMIT);
+  renderHistory();
 };
 
 // ---------------------------------------------------------------------------
@@ -90,7 +126,7 @@ input.addEventListener('blur', closeSuggestions);
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   closeSuggestions();
-  run('show-reference', input.value);
+  showAndRecord('show-reference', input.value);
 });
 
 // ---------------------------------------------------------------------------
@@ -144,20 +180,73 @@ bookSelect.addEventListener('change', () => loadChapters(bookSelect.value));
 chapterSelect.addEventListener('change', () => loadVerses(bookSelect.value, chapterSelect.value));
 verseSelect.addEventListener('change', () => {
   if (!verseSelect.value) return;
-  run('show-verse', {
+  showAndRecord('show-verse', {
     book: bookSelect.value,
     chapter: chapterSelect.value,
     verse: verseSelect.value,
   });
 });
 
+// ---------------------------------------------------------------------------
+// Preview of the output screen
+// ---------------------------------------------------------------------------
+
+const preview = document.getElementById('preview');
+const previewFrame = document.getElementById('preview-frame');
+const statusBadge = document.getElementById('display-status');
+const currentRef = document.getElementById('current-ref');
+let outputSize = { width: 1920, height: 1080 };
+
+const formatRef = (v) => `${v.name} ${v.chapter}:${v.verse}`;
+
+// The frame is laid out at the output's real size, then scaled to the panel.
+const layoutPreview = () => {
+  const { width, height } = outputSize;
+  preview.style.aspectRatio = `${width} / ${height}`;
+  previewFrame.style.width = `${width}px`;
+  previewFrame.style.height = `${height}px`;
+  previewFrame.style.transform = `scale(${preview.clientWidth / width})`;
+};
+new ResizeObserver(layoutPreview).observe(preview);
+
+const toPreview = (channel, data) => {
+  previewFrame.contentWindow?.postMessage({ channel, data }, '*');
+};
+
+const applyDisplayState = ({ visible, width, height }) => {
+  statusBadge.dataset.state = visible ? 'on' : 'off';
+  statusBadge.textContent = visible ? '화면 송출 중' : '화면 꺼짐';
+  preview.dataset.state = visible ? 'on' : 'off';
+  if (width && height) {
+    outputSize = { width, height };
+    document.getElementById('preview-size').textContent = `${width}×${height}`;
+    layoutPreview();
+  }
+};
+
+// Everything main sends to the output window is mirrored here.
+window.api.on('preview', (event, { channel, data }) => toPreview(channel, data));
+window.api.on('display-state', (event, state) => applyDisplayState(state));
+
+// Fills the frame with what is on screen right now. Runs at startup and
+// again when the frame finishes loading, whichever happens last.
+const syncPreview = async () => {
+  const state = await window.api.invoke('get-display-state');
+  applyDisplayState(state);
+  if (state.sentence) toPreview('sentence-change', state.sentence);
+  currentRef.textContent = state.current ? formatRef(state.current) : '표시 중인 구절 없음';
+};
+previewFrame.addEventListener('load', syncPreview);
+syncPreview();
+
 // Keeps the input and dropdowns in sync with what is on screen.
 // A newer update cancels an older one still waiting on its dropdown reloads,
 // so holding PageDown cannot leave the dropdowns on a stale chapter.
 let syncId = 0;
-window.api.on('current-verse', async (event, { id, abbr, chapter, verse }) => {
+window.api.on('current-verse', async (event, { id, name, abbr, chapter, verse }) => {
   const mySync = ++syncId;
   input.value = `${abbr} ${chapter}:${verse}`;
+  currentRef.textContent = formatRef({ name, chapter, verse });
   if (bookSelect.value !== String(id)) {
     bookSelect.value = String(id);
     await loadChapters(id);

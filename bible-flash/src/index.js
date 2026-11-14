@@ -55,22 +55,38 @@ const rebuildMenu = () => {
 
 const isAlive = (win) => win && !win.isDestroyed();
 
+// Also mirrored to the control window's preview.
 const sendToDisplay = (channel, data) => {
   if (isAlive(displayWindow)) displayWindow.webContents.send(channel, data);
+  if (isAlive(mainWindow)) mainWindow.webContents.send('preview', { channel, data });
+};
+
+const currentSentence = () => current && {
+  text: current.text,
+  bookChapterVerse: `(${current.abbr} ${current.chapter}:${current.verse})`,
 };
 
 const sendCurrentVerse = () => {
-  if (!current) return;
-  sendToDisplay('sentence-change', {
-    text: current.text,
-    bookChapterVerse: `(${current.abbr} ${current.chapter}:${current.verse})`,
-  });
+  if (current) sendToDisplay('sentence-change', currentSentence());
+};
+
+// Whether the output window is showing, and its size for the preview.
+const getDisplayState = () => {
+  if (!isAlive(displayWindow)) return { visible: false };
+  const [width, height] = displayWindow.getContentSize();
+  return { visible: displayWindow.isVisible(), width, height };
+};
+
+const sendDisplayState = () => {
+  if (isAlive(mainWindow)) mainWindow.webContents.send('display-state', getDisplayState());
 };
 
 const createMainWindow = () => {
   mainWindow = new BrowserWindow({
-    width: 560,
-    height: 480,
+    width: 980,
+    height: 620,
+    minWidth: 480,
+    minHeight: 480,
     webPreferences: WEB_PREFERENCES,
     icon: ICON,
   });
@@ -125,6 +141,14 @@ const createDisplayWindow = (show = false, replacing = null) => {
   displayWindow.loadFile(path.join(__dirname, 'display.html'));
 
   const win = displayWindow;
+  // Events from a window being replaced would report the old one's state.
+  const reportIfCurrent = () => {
+    if (win === displayWindow) sendDisplayState();
+  };
+  win.on('show', reportIfCurrent);
+  win.on('hide', reportIfCurrent);
+  win.on('resize', reportIfCurrent);
+  win.on('closed', reportIfCurrent);
   win.webContents.on('did-finish-load', () => {
     if (!sharesControlScreen) {
       // Going fullscreen after placing (not in the constructor) avoids landing
@@ -135,6 +159,7 @@ const createDisplayWindow = (show = false, replacing = null) => {
     sendCurrentVerse();
     if (show) showDisplayWindow();
     if (isAlive(replacing)) replacing.destroy();
+    reportIfCurrent();
   });
 };
 
@@ -241,19 +266,18 @@ app.on('activate', () => {
 // Verse display
 // ---------------------------------------------------------------------------
 
-// book: { id, name, abbr }. Returns false if the verse does not exist, in
-// which case the screen keeps showing the previous verse.
+// book: { id, name, abbr }. Returns the shown verse, or null if it does not
+// exist, in which case the screen keeps showing the previous verse.
 const showVerse = (book, chapter, verse) => {
   const text = db.queryVerse(book.id, chapter, verse);
-  if (text === undefined) return false;
+  if (text === undefined) return null;
 
   current = { ...book, chapter, verse, text };
   sendCurrentVerse();
   showDisplayWindow();
-  mainWindow.webContents.send('current-verse', {
-    id: book.id, name: book.name, abbr: book.abbr, chapter, verse,
-  });
-  return true;
+  const shown = { id: book.id, name: book.name, abbr: book.abbr, chapter, verse };
+  mainWindow.webContents.send('current-verse', shown);
+  return shown;
 };
 
 const fail = (message) => ({ ok: false, message });
@@ -265,18 +289,16 @@ ipcMain.handle('show-reference', (event, input) => {
   const book = db.findBook(ref.book);
   if (!book) return fail(`'${ref.book}'에 해당하는 성경을 찾을 수 없습니다.`);
 
-  if (!showVerse(book, ref.chapter, ref.verse)) {
-    return fail(`${book.name} ${ref.chapter}:${ref.verse} 구절이 없습니다.`);
-  }
-  return { ok: true };
+  const shown = showVerse(book, ref.chapter, ref.verse);
+  if (!shown) return fail(`${book.name} ${ref.chapter}:${ref.verse} 구절이 없습니다.`);
+  return { ok: true, shown };
 });
 
 ipcMain.handle('show-verse', (event, { book, chapter, verse }) => {
   const found = db.getBook(Number(book));
-  if (!found || !showVerse(found, Number(chapter), Number(verse))) {
-    return fail('구절을 찾을 수 없습니다.');
-  }
-  return { ok: true };
+  const shown = found && showVerse(found, Number(chapter), Number(verse));
+  if (!shown) return fail('구절을 찾을 수 없습니다.');
+  return { ok: true, shown };
 });
 
 // direction: 1 = next verse, -1 = previous verse (crosses chapters and books).
@@ -289,6 +311,12 @@ ipcMain.handle('navigate', (event, direction) => {
   showVerse(db.getBook(next.book), next.chapter, next.verse);
   return { ok: true };
 });
+
+ipcMain.handle('get-display-state', () => ({
+  ...getDisplayState(),
+  sentence: currentSentence(),
+  current: current && { name: current.name, chapter: current.chapter, verse: current.verse },
+}));
 
 ipcMain.handle('get-book-list', () => db.getBookList());
 
